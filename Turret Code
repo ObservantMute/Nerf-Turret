@@ -1,0 +1,86 @@
+// Include the AccelStepper library:
+#include 
+#include 
+// Define stepper motor connections and motor interface type. 
+// Motor interface type must be set to 1 when using a driver:
+#define dirPin 2
+#define stepPin 3
+#define flywheelPin 4
+#define pusherPin 5
+#define motorInterfaceType 1
+#define servoPin 8
+// Create a new instance of the AccelStepper class:
+AccelStepper stepper = AccelStepper(motorInterfaceType, stepPin, dirPin); 
+Servo servo;
+bool usingRunSpeed = false;
+void setup() {
+  Serial.begin(9600);
+  pinMode(flywheelPin, OUTPUT);
+  pinMode(pusherPin, OUTPUT);
+  // Set the maximum speed and acceleration:
+  stepper.setMaxSpeed(10000);
+  stepper.setAcceleration(3000);
+  servo.attach(servoPin);
+  servo.write(110);
+}
+void loop() {
+  if (Serial.available() > 0) {
+    String in = Serial.readStringUntil('\n');
+    switch(in.charAt(0)) {
+      //runspeed?
+      case 'm':
+        usingRunSpeed = true;
+        break;
+      case 'M':
+        usingRunSpeed = false;
+        break;
+      //stepper
+      case 's':
+      {
+        float newSpeed = in.substring(1).toFloat();
+        stepper.setSpeed(newSpeed);
+        Serial.println("Stepper speed set");
+      }
+        break; 
+      // stepper to position
+      case 'T':
+      {
+        float absolutePos = in.substring(1).toFloat();
+        stepper.moveTo(absolutePos);
+        Serial.println("Stepper pos set"); 
+      }
+        break;
+      //Servo
+      case 'S': 
+      {
+        float newAngle = in.substring(1).toInt(); 
+        servo.write(newAngle); 
+        Serial.println("Servo angle set");
+      }
+        break;
+      case 'F':
+        digitalWrite(flywheelPin, HIGH); 
+        Serial.println("Flywheel pin set high");
+        break;
+      case 'f':
+        digitalWrite(flywheelPin, LOW);
+        Serial.println("Flywheel pin set low");
+        break;
+      case 'P':
+        digitalWrite(pusherPin, HIGH);
+        Serial.println("Pusher pin set high");
+        break;
+      case 'p':
+        digitalWrite(pusherPin, LOW);
+        Serial.println("Pusher pin set low");
+        break;
+      default: 
+        Serial.println("unknown command");
+    }
+  }
+  if (usingRunSpeed){
+    stepper.runSpeed();
+  } else {
+    stepper.run();
+  }
+}
